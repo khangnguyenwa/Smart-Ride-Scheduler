@@ -1,0 +1,107 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Random;
+
+class Car {
+    int id;
+    double x, y; // tọa độ
+    double speed; // km/phút
+    double estimatedTime; // dự đoán thời gian đến khách
+
+    public Car(int id, double x, double y, double speed) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+    }
+
+    public double distanceTo(double customerX, double customerY) {
+        return Math.sqrt(Math.pow(x - customerX, 2) + Math.pow(y - customerY, 2));
+    }
+
+    public void calculateEstimatedTime(double customerX, double customerY) {
+        this.estimatedTime = distanceTo(customerX, customerY) / speed;
+    }
+}
+
+public class SmartRideScheduler {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        Random rand = new Random();
+
+        // Nhập tọa độ khách và thời gian tối thiểu
+        System.out.print("Enter your X coordinate: ");
+        double customerX = scanner.nextDouble();
+        System.out.print("Enter your Y coordinate: ");
+        double customerY = scanner.nextDouble();
+        System.out.print("Enter minimum wait time you need (minutes): ");
+        double minWait = scanner.nextDouble();
+
+        // Tạo random cars
+        int numCars = rand.nextInt(5) + 5; // 5-9 xe
+        List<Car> cars = new ArrayList<>();
+        for (int i = 1; i <= numCars; i++) {
+            double x = rand.nextDouble() * 20;
+            double y = rand.nextDouble() * 20;
+            double speed = 0.5 + rand.nextDouble() * 1.0; // km/phút
+            cars.add(new Car(i, x, y, speed));
+        }
+
+        // Tính ETA cho từng xe
+        for (Car car : cars) {
+            car.calculateEstimatedTime(customerX, customerY);
+        }
+
+        // Chọn Recommended Car & liệt kê
+        Car recommended = null;
+        double bestDiff = Double.MAX_VALUE;
+
+        System.out.println("\nAvailable cars (ETA >= minimum wait):");
+        for (Car car : cars) {
+            if (car.estimatedTime >= minWait) {
+                System.out.printf("Car #%d - ETA: %.2f minutes\n", car.id, car.estimatedTime);
+                double diff = car.estimatedTime - minWait;
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    recommended = car;
+                }
+            }
+        }
+
+        // Xe đến quá sớm (không recommend)
+        System.out.println("\nCars arriving before your minimum wait time (not recommended):");
+        for (Car car : cars) {
+            if (car.estimatedTime < minWait) {
+                System.out.printf("Car #%d - ETA: %.2f minutes\n", car.id, car.estimatedTime);
+            }
+        }
+
+        // Smart reroute: nếu recommended delay > 5 phút so với minWait, chọn xe gần nhất khác
+        if (recommended != null && recommended.estimatedTime - minWait > 5) {
+            Car reroute = null;
+            double minDistance = Double.MAX_VALUE;
+            for (Car car : cars) {
+                if (car != recommended) {
+                    double dist = car.distanceTo(customerX, customerY);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        reroute = car;
+                    }
+                }
+            }
+            if (reroute != null) {
+                System.out.printf("\nRecommended car was delayed, rerouted to Car #%d - ETA: %.2f minutes\n",
+                        reroute.id, reroute.estimatedTime);
+            } else {
+                System.out.println("\nNo reroute available.");
+            }
+        } else if (recommended != null) {
+            System.out.printf("\nRecommended Car: #%d - ETA: %.2f minutes\n", recommended.id, recommended.estimatedTime);
+        } else {
+            System.out.println("\nNo cars meet your minimum wait time requirement.");
+        }
+
+        scanner.close();
+    }
+}
